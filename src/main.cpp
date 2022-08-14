@@ -6,6 +6,7 @@
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 #include "pros/screen.h"
+#include <cmath>
 #include <string>
 
 #define PI 3.1415926
@@ -68,9 +69,7 @@ void initialize() {
 	
 }
 
-void drive(float targetX, float targetY) {
 
-}
 
 void driveStop() {
 	driveLeftBack.brake();
@@ -78,6 +77,10 @@ void driveStop() {
 	driveRightBack.brake();
 	driveRightFront.brake();
 }
+
+
+
+
 
 
 
@@ -120,15 +123,85 @@ void turnRight(float targetAngle) {
 		driveRightFront.move(-voltage);
 	}
 }
-	
-	
 
-
-
-
-void odom() {
+void rotateLeftAbsolute(float turnAngle) {
+	float startingAngle = inertial_sensor.get_heading();
+	float endingAngle = startingAngle - turnAngle;
+	if(endingAngle > 360) endingAngle = endingAngle - 360;
+	if(endingAngle < 0) endingAngle = endingAngle + 360;
+	turnLeft(endingAngle);
 	
 }
+
+void rotateRightAbsolute(float turnAngle) {
+	float startingAngle = inertial_sensor.get_heading();
+	float endingAngle = startingAngle + turnAngle;
+	if(endingAngle > 360) endingAngle = endingAngle - 360;
+	if(endingAngle < 0) endingAngle = endingAngle + 360;
+	turnRight(endingAngle);
+}
+
+
+
+
+
+
+	
+
+void drive(float targetX, float targetY, float targetAngle, float currentX, float currentY, float pastFwd, float pastLeftRight) {
+		float angle = inertial_sensor.get_heading();
+		if(angle > 360) angle = angle - 360;
+		if(angle < 0) angle = angle + 360;
+
+		float posX = currentX;
+		float posY = currentY;
+		float averageFwd;
+		float averageLeftRight;
+		float lastAvgFwd = pastFwd;
+		float lastLeftRight = pastLeftRight;
+		float angleError;
+		float turnSpeed;
+
+		while((std::abs(targetX - posX) > 5) && (std::abs(targetY - posY) > 5)) {
+			averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
+			averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
+			angle = inertial_sensor.get_heading();
+			// // coordinate tracking
+			posX = posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI/180)) + (averageLeftRight - lastLeftRight) * -cos(angle * (PI/180)));
+			posY = posY + (((averageFwd - lastAvgFwd) * cos(angle * PI/180)) - (averageLeftRight - lastLeftRight) * sin(angle * (PI/180)));
+			lastAvgFwd = averageFwd;
+			lastLeftRight = averageLeftRight;
+
+
+
+			
+		}
+
+		if((std::abs(targetX - posX) <= 5) && (std::abs(targetY - posY) <= 5)) {
+			angle = inertial_sensor.get_heading();
+			angleError = targetAngle - angle;
+			if(angleError > 360) {
+				angleError = angleError - 360;
+			} else if(angleError < 0) {
+				angleError = angleError + 360;
+			}
+			if(angleError > 180) {
+	
+		
+			}
+			if(angleError <= 180) {
+			
+			}
+			
+
+		}
+
+}
+
+
+
+
+
 
 
 
@@ -162,7 +235,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	turnRight(90);
+
 	driveStop();
 }
 
@@ -206,6 +279,8 @@ void opcontrol() {
 	float lastLeftTracker;
 	float lastRightTracker;
 	float lastBackTracker;
+	float lastAvgFwd = 0;
+	float lastLeftRight = 0;
 	
 
 	while(true) {
@@ -229,23 +304,23 @@ void opcontrol() {
 		float averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 		float averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
 
-		// anshuls version
-		posX = posX - (((averageFwd) * -sin(angle * PI/180)) + (averageLeftRight) * -cos(angle * (PI/180)));
-		posY = posY + (((averageFwd) * cos(angle * PI/180)) - (averageLeftRight) * cos(angle * (PI/180)));
+		// coordinate tracking
+		posX = posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI/180)) + (averageLeftRight - lastLeftRight) * -cos(angle * (PI/180)));
+		posY = posY + (((averageFwd - lastAvgFwd) * cos(angle * PI/180)) - (averageLeftRight - lastLeftRight) * sin(angle * (PI/180)));
 
 		// controller.print(1, 0, "Position Y: %f", (wheelRadius * (posY * (PI/180))));
 		// controller.print(2, 0, "Position X: %f", (wheelRadius * (posX * (PI/180))));
 		controller.print(1, 0, "angle: %f" , (angle));
 
+		lastAvgFwd = averageFwd;
+		lastLeftRight = averageLeftRight;
+		
 		lastLeftTracker = leftTrackerWheel.get_position() / 100.000;
 		lastRightTracker = rightTrackerWheel.get_position() / 100.000;
 		lastBackTracker = horizontalTrackerWheel.get_position() / 100.000;
 		
-		leftTrackerWheel.reset_position();
-		rightTrackerWheel.reset_position();
-		horizontalTrackerWheel.reset_position();
 		
-		pros::delay(5);
+		pros::delay(1);
 
 	}
 
