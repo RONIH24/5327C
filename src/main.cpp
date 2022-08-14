@@ -135,6 +135,14 @@ void rotateRightAbsolute(float turnAngle) {
 	rotateRight(endingAngle);
 }
 
+void drive(float voltage) {
+	driveLeftBack.move(voltage);
+	driveLeftFront.move(voltage);
+	driveRightBack.move(voltage);
+	driveRightFront.move(voltage);
+}
+
+
 
 void drive(float targetX, float targetY, float targetAngle, float currentX, float currentY, float pastFwd, float pastLeftRight) {
 		float angle = inertial_sensor.get_heading();
@@ -151,6 +159,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		float turnSpeed;
 		float travelX = targetX - currentX;
 		float travelY = targetY - currentY;
+		float driveVoltage;
 
 		float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
 
@@ -180,27 +189,28 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			lastAvgFwd = averageFwd;
 			lastLeftRight = averageLeftRight;
 
+			travelX = targetX - posX;
+			travelY = targetY - posY;
+
+			travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+			driveVoltage = travelDistance * 5;
+			if(driveVoltage > 127) driveVoltage = 127;
+			drive(driveVoltage);
 		
+
 			
 		}
 
 		if((std::abs(targetX - posX) <= 5) && (std::abs(targetY - posY) <= 5)) {
 			angle = inertial_sensor.get_heading();
 			angleError = targetAngle - angle;
-			if(angleError > 360) {
-				angleError = angleError - 360;
-			} else if(angleError < 0) {
-				angleError = angleError + 360;
-			}
-			if(angleError > 180) {
-	
+			if(angleError > 0) {
+				rotateRight(targetAngle);
 		
 			}
-			if(angleError <= 180) {
-			
+			if(angleError < 0) {
+				rotateLeft(targetAngle);
 			}
-			
-
 		}
 
 }
