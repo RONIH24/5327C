@@ -78,13 +78,7 @@ void driveStop() {
 	driveRightFront.brake();
 }
 
-
-
-
-
-
-
-void turnLeft(float targetAngle) {
+void rotateLeft(float targetAngle) {
 	
 	float error = targetAngle - inertial_sensor.get_heading();
 	float voltage;
@@ -105,7 +99,7 @@ void turnLeft(float targetAngle) {
 	}
 }
 
-void turnRight(float targetAngle) {
+void rotateRight(float targetAngle) {
 	float error = targetAngle - inertial_sensor.get_heading();
 	float voltage;
 	if(error > 360) {
@@ -129,7 +123,7 @@ void rotateLeftAbsolute(float turnAngle) {
 	float endingAngle = startingAngle - turnAngle;
 	if(endingAngle > 360) endingAngle = endingAngle - 360;
 	if(endingAngle < 0) endingAngle = endingAngle + 360;
-	turnLeft(endingAngle);
+	rotateLeft(endingAngle);
 	
 }
 
@@ -138,15 +132,9 @@ void rotateRightAbsolute(float turnAngle) {
 	float endingAngle = startingAngle + turnAngle;
 	if(endingAngle > 360) endingAngle = endingAngle - 360;
 	if(endingAngle < 0) endingAngle = endingAngle + 360;
-	turnRight(endingAngle);
+	rotateRight(endingAngle);
 }
 
-
-
-
-
-
-	
 
 void drive(float targetX, float targetY, float targetAngle, float currentX, float currentY, float pastFwd, float pastLeftRight) {
 		float angle = inertial_sensor.get_heading();
@@ -161,8 +149,28 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		float lastLeftRight = pastLeftRight;
 		float angleError;
 		float turnSpeed;
+		float travelX = targetX - currentX;
+		float travelY = targetY - currentY;
 
+		float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+
+		float turnAngle = 90 - (std::abs((asinf(travelY / travelDistance)) * (180/PI)));
+		if(travelY < 0 && travelX > 0) {
+			turnAngle = turnAngle + 90;
+		} else if(travelY < 0 && travelX < 0) {
+			turnAngle = turnAngle + 180;
+		} else if(travelY > 0 && travelX < 0) {
+			turnAngle = turnAngle + 270;
+		}
+
+		if((angle - turnAngle) > 180) {
+			rotateRight(turnAngle);
+		} else if((angle - turnAngle) <= 180) {
+			rotateLeft(turnAngle);
+		}
+	
 		while((std::abs(targetX - posX) > 5) && (std::abs(targetY - posY) > 5)) {
+			// position tracking
 			averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 			averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
 			angle = inertial_sensor.get_heading();
@@ -172,8 +180,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			lastAvgFwd = averageFwd;
 			lastLeftRight = averageLeftRight;
 
-
-
+		
 			
 		}
 
