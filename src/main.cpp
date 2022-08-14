@@ -192,18 +192,13 @@ void opcontrol() {
 	float tR = 0;
 	float tL = 0;
 	float posX = 0;
-	float posY = 0;
-	float deltaL;
-	float deltaR;
-	float deltaS;
-	float deltaAngle;
+	float posY = 0;	
 	float angle;
 	float pastAngle = 0;
-	float distanceLY;
 	float lastLeftTracker;
 	float lastRightTracker;
 	float lastBackTracker;
-	float deltaAngleRad;
+	
 
 	while(true) {
 		// driver control
@@ -218,14 +213,6 @@ void opcontrol() {
 		driveLeftFront.move(leftJoystick);
 
 		//position tracking
-		// deltaL = (wheelRadius * ((leftTrackerWheel.get_position() / 100.000000) * (PI/180)));
-		// deltaR = (wheelRadius * ((rightTrackerWheel.get_position() / 100.000000) * (PI/180)));
-		// deltaS = (wheelRadius * ((horizontalTrackerWheel.get_position() / 100.0000) * (PI/180)));
-
-
-		// deltaAngle = ((deltaL - deltaR) / (sL + sR)) * (180/PI);
-		// deltaAngleRad = ((deltaL - deltaR) / (sL + sR));
-
 		angle = inertial_sensor.get_heading();
 		if(angle > 360) angle = 0;
 		if(angle < 0) {
@@ -241,12 +228,6 @@ void opcontrol() {
 		// controller.print(1, 0, "Position Y: %f", (wheelRadius * (posY * (PI/180))));
 		// controller.print(2, 0, "Position X: %f", (wheelRadius * (posX * (PI/180))));
 		controller.print(1, 0, "angle: %f" , (angle));
-
-		if(buttonB) {
-			turnRight(90);
-		}
-
-
 
 		lastLeftTracker = leftTrackerWheel.get_position() / 100.000;
 		lastRightTracker = rightTrackerWheel.get_position() / 100.000;
