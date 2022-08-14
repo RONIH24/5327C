@@ -82,7 +82,9 @@ void driveStop() {
 
 
 void turnLeft(float targetAngle) {
-	double error = targetAngle - inertial_sensor.get_heading();
+	
+	float error = targetAngle - inertial_sensor.get_heading();
+	float voltage;
 	if(error > 360) {
 		error = error - 360;
 	} else if(error < 0) {
@@ -90,15 +92,19 @@ void turnLeft(float targetAngle) {
 	}
 	while(error > 5) {
 		error = targetAngle - inertial_sensor.get_heading();
-		driveLeftBack.move(-error);
-		driveLeftFront.move(-error);
-		driveRightBack.move(error);
-		driveRightFront.move(error);
+		voltage = error * 3;
+		if(voltage > 127) voltage = 127;
+	
+		driveLeftBack.move(-voltage);
+		driveLeftFront.move(-voltage);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
 	}
 }
 
 void turnRight(float targetAngle) {
-	double error = targetAngle - inertial_sensor.get_heading();
+	float error = targetAngle - inertial_sensor.get_heading();
+	float voltage;
 	if(error > 360) {
 		error = error - 360;
 	} else if(error < 0) {
@@ -106,10 +112,12 @@ void turnRight(float targetAngle) {
 	}
 	while(error > 5) {
 		error = targetAngle - inertial_sensor.get_heading();
-		driveLeftBack.move(error);
-		driveLeftFront.move(error);
-		driveRightBack.move(-error);
-		driveRightFront.move(-error);
+		voltage = error * 3;
+		if(voltage > 127) voltage = 127;
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(-voltage);
+		driveRightFront.move(-voltage);
 	}
 }
 	
