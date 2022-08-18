@@ -5,6 +5,7 @@
 #include "pros/misc.hpp"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
+#include "pros/rtos.hpp"
 #include "pros/screen.h"
 #include <cmath>
 #include <string>
@@ -57,7 +58,6 @@ void initialize() {
 	driveLeftBack.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
 	driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
 	inertial_sensor.reset();
-	inertial_sensor.tare();
 	leftTrackerWheel.reset();
 	rightTrackerWheel.reset();
 	leftTrackerWheel.reset_position();
@@ -79,7 +79,6 @@ void driveStop() {
 }
 
 void rotateLeft(float targetAngle) {
-	
 	float error = targetAngle - inertial_sensor.get_heading();
 	float voltage;
 	if(error > 360) {
@@ -87,16 +86,21 @@ void rotateLeft(float targetAngle) {
 	} else if(error < 0) {
 		error = error + 360;
 	}
-	while(error > 5) {
+	while(error > 2) {
 		error = targetAngle - inertial_sensor.get_heading();
-		voltage = error * 3;
+		if(error > 360) {
+			error = error - 360;
+		} else if(error < 0) {
+			error = error + 360;
+		}
+		voltage = error * 1.5;
 		if(voltage > 127) voltage = 127;
-	
 		driveLeftBack.move(-voltage);
 		driveLeftFront.move(-voltage);
 		driveRightBack.move(voltage);
 		driveRightFront.move(voltage);
 	}
+	driveStop();
 }
 
 void rotateRight(float targetAngle) {
@@ -107,15 +111,21 @@ void rotateRight(float targetAngle) {
 	} else if(error < 0) {
 		error = error + 360;
 	}
-	while(error > 5) {
+	while(error > 2) {
 		error = targetAngle - inertial_sensor.get_heading();
-		voltage = error * 3;
+		if(error > 360) {
+			error = error - 360;
+		} else if(error < 0) {
+			error = error + 360;
+		}
+		voltage = error * 1.5;
 		if(voltage > 127) voltage = 127;
 		driveLeftBack.move(voltage);
 		driveLeftFront.move(voltage);
 		driveRightBack.move(-voltage);
 		driveRightFront.move(-voltage);
 	}
+	driveStop();
 }
 
 void rotateLeftAbsolute(float turnAngle) {
@@ -135,7 +145,7 @@ void rotateRightAbsolute(float turnAngle) {
 	rotateRight(endingAngle);
 }
 
-void drive(float voltage) {
+void move(float voltage) {
 	driveLeftBack.move(voltage);
 	driveLeftFront.move(voltage);
 	driveRightBack.move(voltage);
@@ -151,6 +161,8 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 
 		float posX = currentX;
 		float posY = currentY;
+		float posXinch;
+		float posYinch;
 		float averageFwd;
 		float averageLeftRight;
 		float lastAvgFwd = pastFwd;
@@ -160,6 +172,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		float travelX = targetX - currentX;
 		float travelY = targetY - currentY;
 		float driveVoltage;
+		float wheelRadius = 1.375;
 
 		float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
 
@@ -178,7 +191,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			rotateLeft(turnAngle);
 		}
 	
-		while((std::abs(targetX - posX) > 5) && (std::abs(targetY - posY) > 5)) {
+		while((std::abs(targetX - posX) > 2) && (std::abs(targetY - posY) > 2)) {
 			// position tracking
 			averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 			averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
@@ -189,19 +202,21 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			lastAvgFwd = averageFwd;
 			lastLeftRight = averageLeftRight;
 
-			travelX = targetX - posX;
-			travelY = targetY - posY;
+			posXinch = (wheelRadius * (posX * (PI/180)));
+			posYinch = (wheelRadius * (posY * (PI/180)));
+			travelX = targetX - posXinch;
+			travelY = targetY - posYinch;
 
 			travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
 			driveVoltage = travelDistance * 5;
 			if(driveVoltage > 127) driveVoltage = 127;
-			drive(driveVoltage);
+			move(driveVoltage);
 		
 
 			
 		}
 
-		if((std::abs(targetX - posX) <= 5) && (std::abs(targetY - posY) <= 5)) {
+		if((std::abs(targetX - posXinch) <= 5) && (std::abs(targetY - posYinch) <= 5)) {
 			angle = inertial_sensor.get_heading();
 			angleError = targetAngle - angle;
 			if(angleError > 0) {
@@ -252,8 +267,17 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
+	// rotateRight(90);
+	// pros::delay(100);
+	// rotateRight(90);
+	pros::delay(2000);
+	rotateLeft(180);
 
-	driveStop();
+	// pros::delay(200);
+	// rotateLeftAbsolute(90);
+	// pros::delay(100);
+	// rotateRightAbsolute(180);
+	
 }
 
 
@@ -314,10 +338,10 @@ void opcontrol() {
 
 		//position tracking
 		angle = inertial_sensor.get_heading();
-		if(angle > 360) angle = 0;
-		if(angle < 0) {
-			angle = angle + 360;
-		}
+		// if(angle > 360) angle = angle - 360;
+		// if(angle < 0) {
+		// 	angle = angle + 360;
+		// }
 		float averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 		float averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
 
@@ -325,8 +349,9 @@ void opcontrol() {
 		posX = posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI/180)) + (averageLeftRight - lastLeftRight) * -cos(angle * (PI/180)));
 		posY = posY + (((averageFwd - lastAvgFwd) * cos(angle * PI/180)) - (averageLeftRight - lastLeftRight) * sin(angle * (PI/180)));
 
-		// controller.print(1, 0, "Position Y: %f", (wheelRadius * (posY * (PI/180))));
-		// controller.print(2, 0, "Position X: %f", (wheelRadius * (posX * (PI/180))));
+		// controller.print(1, 0, "Position X: %f", (wheelRadius * (posX * (PI/180))));
+		// controller.print(2, 0, "Position Y: %f", (wheelRadius * (posY * (PI/180))));
+
 		controller.print(1, 0, "angle: %f" , (angle));
 
 		lastAvgFwd = averageFwd;
