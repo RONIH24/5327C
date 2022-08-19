@@ -8,6 +8,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 #include <cmath>
+#include <cstdlib>
 #include <string>
 
 #define PI 3.1415926
@@ -152,27 +153,46 @@ void move(float voltage) {
 	driveRightFront.move(voltage);
 }
 
-void rotate(float angle) {
-	float error = angle - inertial_sensor.get_heading();
+int rotate(float angle) {
+	inertial_sensor.tare();
+	float positiveAngle;
+	if(angle < 0) {
+		positiveAngle = angle + 360;
+	} else {
+		positiveAngle = angle;
+	}
+	float error = positiveAngle - inertial_sensor.get_heading();
 	float voltage;
 	while(std::abs(error) > 2) {
-		error = angle - inertial_sensor.get_heading();
-		voltage = error * 1.5;
+		error = positiveAngle - inertial_sensor.get_heading();
+		voltage = error * 2;
+		voltage = std::abs(voltage);
 		if(voltage > 127) voltage = 127;
-		if(voltage < -127) voltage = -127;
-		driveLeftBack.move(voltage);
-		driveLeftFront.move(voltage);
-		driveRightBack.move(-voltage);
-		driveRightFront.move(-voltage);
+	
+		if(angle < 0) {
+			driveLeftBack.move(-voltage);
+			driveLeftFront.move(-voltage);
+			driveRightBack.move(voltage);
+			driveRightFront.move(voltage);
+		} else if(angle > 0) {
+			driveLeftBack.move(voltage);
+			driveLeftFront.move(voltage);
+			driveRightBack.move(-voltage);
+			driveRightFront.move(-voltage);
+
+		if(error <= 2) {
+			return 0;
+		}
+	 }
+	 
 	}
+	return 0;
 }
 
 
 
 void drive(float targetX, float targetY, float targetAngle, float currentX, float currentY, float pastFwd, float pastLeftRight) {
 		float angle = inertial_sensor.get_heading();
-		if(angle > 360) angle = angle - 360;
-		if(angle < 0) angle = angle + 360;
 
 		float posX = currentX;
 		float posY = currentY;
@@ -199,6 +219,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		} else if(travelY > 0 && travelX < 0) {
 			turnAngle = turnAngle + 270;
 		}
+
 
 		rotate(turnAngle);
 	
@@ -271,9 +292,26 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {
-	rotate(90);
+
+void goForward() {
+	while(true) {
+		driveLeftBack.move(127);
+		driveRightBack.move(127);
+		driveLeftFront.move(127);
+		driveRightFront.move(127);
+	}
 	
+}
+
+void auton1() {
+	rotate(360);
+	goForward();
+	
+}
+
+
+void autonomous() {
+	auton1();
 }
 
 
