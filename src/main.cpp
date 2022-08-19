@@ -152,6 +152,21 @@ void move(float voltage) {
 	driveRightFront.move(voltage);
 }
 
+void rotate(float angle) {
+	float error = angle - inertial_sensor.get_heading();
+	float voltage;
+	while(std::abs(error) > 2) {
+		error = angle - inertial_sensor.get_heading();
+		voltage = error * 1.5;
+		if(voltage > 127) voltage = 127;
+		if(voltage < -127) voltage = -127;
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(-voltage);
+		driveRightFront.move(-voltage);
+	}
+}
+
 
 
 void drive(float targetX, float targetY, float targetAngle, float currentX, float currentY, float pastFwd, float pastLeftRight) {
@@ -185,11 +200,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			turnAngle = turnAngle + 270;
 		}
 
-		if((angle - turnAngle) > 180) {
-			rotateRight(turnAngle);
-		} else if((angle - turnAngle) <= 180) {
-			rotateLeft(turnAngle);
-		}
+		rotate(turnAngle);
 	
 		while((std::abs(targetX - posX) > 2) && (std::abs(targetY - posY) > 2)) {
 			// position tracking
@@ -217,15 +228,9 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		}
 
 		if((std::abs(targetX - posXinch) <= 5) && (std::abs(targetY - posYinch) <= 5)) {
-			angle = inertial_sensor.get_heading();
-			angleError = targetAngle - angle;
-			if(angleError > 0) {
-				rotateRight(targetAngle);
-		
-			}
-			if(angleError < 0) {
-				rotateLeft(targetAngle);
-			}
+			// angle = inertial_sensor.get_heading();
+			// angleError = targetAngle - angle;
+			rotate(targetAngle);
 		}
 
 }
@@ -267,16 +272,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-	// rotateRight(90);
-	// pros::delay(100);
-	// rotateRight(90);
-	pros::delay(2000);
-	rotateLeft(180);
-
-	// pros::delay(200);
-	// rotateLeftAbsolute(90);
-	// pros::delay(100);
-	// rotateRightAbsolute(180);
+	rotate(90);
 	
 }
 
