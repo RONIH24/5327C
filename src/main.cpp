@@ -153,7 +153,7 @@ void move(float voltage) {
 	driveRightFront.move(voltage);
 }
 
-int rotate(float angle) {
+void rotate(float angle) {
 	inertial_sensor.tare();
 	float positiveAngle;
 	if(angle < 0) {
@@ -163,7 +163,7 @@ int rotate(float angle) {
 	}
 	float error = positiveAngle - inertial_sensor.get_heading();
 	float voltage;
-	while(std::abs(error) > 2) {
+	while(std::abs(error) > 5) {
 		error = positiveAngle - inertial_sensor.get_heading();
 		voltage = error * 2;
 		voltage = std::abs(voltage);
@@ -180,13 +180,10 @@ int rotate(float angle) {
 			driveRightBack.move(-voltage);
 			driveRightFront.move(-voltage);
 
-		if(error <= 2) {
-			return 0;
-		}
 	 }
+
 	 
 	}
-	return 0;
 }
 
 
@@ -223,7 +220,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 
 		rotate(turnAngle);
 	
-		while((std::abs(targetX - posX) > 2) && (std::abs(targetY - posY) > 2)) {
+		while(travelDistance > 5) {
 			// position tracking
 			averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 			averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
@@ -236,23 +233,21 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 
 			posXinch = (wheelRadius * (posX * (PI/180)));
 			posYinch = (wheelRadius * (posY * (PI/180)));
+
 			travelX = targetX - posXinch;
 			travelY = targetY - posYinch;
-
 			travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+
 			driveVoltage = travelDistance * 5;
-			if(driveVoltage > 127) driveVoltage = 127;
+		if(driveVoltage > 127) driveVoltage = 127;
 			move(driveVoltage);
-		
 
 			
 		}
 
-		if((std::abs(targetX - posXinch) <= 5) && (std::abs(targetY - posYinch) <= 5)) {
-			// angle = inertial_sensor.get_heading();
-			// angleError = targetAngle - angle;
-			rotate(targetAngle);
-		}
+		rotate(targetAngle - inertial_sensor.get_heading());
+		driveStop();
+		// (std::abs(targetX - posXinch) > 0) && (std::abs(targetY - posYinch) > 0)
 
 }
 
@@ -304,9 +299,9 @@ void goForward() {
 }
 
 void auton1() {
-	rotate(360);
-	goForward();
-	
+	drive(20, 20, 0, 0, 0, 0, 0);
+	pros::delay(1000);
+	drive(-20, -20, 180, 0, 0, 0, 0);
 }
 
 
