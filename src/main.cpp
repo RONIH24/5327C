@@ -246,10 +246,12 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			turnAngle = turnAngle + 270;
 		}
 
+		float variable = 2;
+
 
 		rotate(turnAngle);
 	
-		while(travelDistance > 5) {
+		while(travelDistance > variable) {
 			// position tracking
 			averageFwd = ((leftTrackerWheel.get_position() / 100.000) + rightTrackerWheel.get_position() / 100.000) / 2.0000;
 			averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
@@ -265,7 +267,12 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 
 			travelX = targetX - posXinch;
 			travelY = targetY - posYinch;
-			travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+			travelDistance = sqrtf(std::abs((travelX * travelX)) + std::abs((travelY * travelY)));
+
+			if(travelX < -1) {
+				variable = 11;
+			}
+
 
 			
 			float errorDifference = travelDistance - lastTravelDistance;
@@ -274,6 +281,15 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			if(motorSpeed > 127) motorSpeed = 127;
 			move(motorSpeed);
 			lastTravelDistance = travelDistance;
+
+	
+
+			controller.print(1, 0, "travel distance: %f", travelDistance);
+
+			if(travelDistance < 6) {
+				travelDistance = 0;
+			}
+		
 
 		
 			
@@ -333,14 +349,14 @@ void competition_initialize() {}
 
 
 void auton1() {
-	drive(25, 25, -2.5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
-	controller.print(1, 0, "currentxpos: %f", currentXPos);
 	pros::delay(5000);
+	drive(15, 15, -2.5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
+
+	pros::delay(1000);
 	drive(35, 35, -3.5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
-	controller.print(1, 0, "currentxpos: %f", currentXPos);
-	controller.print(2, 0, "currentypos: %f", currentYPos);
-	pros::delay(5000);
-	drive(0, 0, 0, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
+
+	pros::delay(1000);
+	drive(1, 1, -5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
 
 }
 
