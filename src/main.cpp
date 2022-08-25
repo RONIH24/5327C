@@ -159,7 +159,6 @@ void move(float voltage) {
 }
 
 void rotate(float angle) {
-	inertial_sensor.tare();
 	float positiveAngle;
 	if(angle < 0) {
 		positiveAngle = angle + 360;
@@ -168,7 +167,7 @@ void rotate(float angle) {
 	}
 	float error = positiveAngle - inertial_sensor.get_heading();
 	float voltage;
-	while(std::abs(error) > 4) {
+	while(std::abs(error) > 5) {
 		error = positiveAngle - inertial_sensor.get_heading();
 		voltage = error * 2;
 		voltage = std::abs(voltage);
@@ -189,6 +188,7 @@ void rotate(float angle) {
 
 	 
 	}
+
 }
 
 void pid(double distance) {
@@ -273,6 +273,10 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 				variable = 11;
 			}
 
+			if(std::abs((turnAngle-inertial_sensor.get_heading())) >= 5) {
+				rotate(turnAngle);
+			}
+
 
 			
 			float errorDifference = travelDistance - lastTravelDistance;
@@ -298,7 +302,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 		}
 		driveStop();
 		
-		rotate(targetAngle - inertial_sensor.get_heading());
+		rotate(targetAngle);
 		driveStop();
 		currentXPos = posX;
 		currentYPos = posY;
@@ -349,21 +353,16 @@ void competition_initialize() {}
 
 
 void auton1() {
-	pros::delay(5000);
-	drive(15, 15, -2.5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
-
+	drive(50, 50, -360, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
 	pros::delay(1000);
-	drive(35, 35, -3.5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
-
-	pros::delay(1000);
-	drive(1, 1, -5, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance);
+	drive(1, 1, 2, currentXPos, currentYPos, pastFwdDistance, pastLeftRightDistance );
 
 }
 
 void auton2() {
 	rotate(90);
 	pros::delay(1000);
-	rotate(-90);
+	rotate(180);
 }
 
 
