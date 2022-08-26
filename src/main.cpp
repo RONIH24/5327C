@@ -151,28 +151,6 @@ void rotateRightAbsolute(float turnAngle) {
 	rotateRight(endingAngle);
 }
 
-void move(float voltage, float angle) {
-	if((inertial_sensor.get_heading() > (angle + 2)) && (inertial_sensor.get_heading() < (angle + 10))) {
-		driveLeftBack.move(voltage - 20);
-		driveLeftFront.move(voltage - 20);
-		driveRightBack.move(voltage);
-		driveRightFront.move(voltage);
-	} else if((inertial_sensor.get_heading() < (angle - 2)) && (inertial_sensor.get_heading() > (angle +10))) {
-		driveLeftBack.move(voltage);
-		driveLeftFront.move(voltage);
-		driveRightBack.move(voltage - 20);
-		driveRightFront.move(voltage - 20);
-	} else {
-		driveLeftBack.move(voltage);
-		driveLeftFront.move(voltage);
-		driveRightBack.move(voltage);
-		driveRightFront.move(voltage);
-	}
-	
-}
-
-
-
 void rotate(float angle) {
 	float positiveAngle;
 	if(angle < 0) {
@@ -205,6 +183,34 @@ void rotate(float angle) {
 	}
 
 }
+
+void move(float voltage, float angle) {
+	if((inertial_sensor.get_heading() > (angle + 2)) && (inertial_sensor.get_heading() < (angle + 10))) {
+		driveLeftBack.move(voltage - 20);
+		driveLeftFront.move(voltage - 20);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	} else if((inertial_sensor.get_heading() < (angle - 2)) && (inertial_sensor.get_heading() > (angle - 10))) {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage - 20);
+		driveRightFront.move(voltage - 20);
+	} else if((inertial_sensor.get_heading() > (angle + 11))) {
+		rotate(-angle);
+	} else if((inertial_sensor.get_heading() < (angle - 11))) {
+		rotate(angle);
+	} else {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	}
+	
+}
+
+
+
+
 
 void pid(double distance) {
 	double error;
