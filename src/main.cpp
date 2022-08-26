@@ -151,12 +151,27 @@ void rotateRightAbsolute(float turnAngle) {
 	rotateRight(endingAngle);
 }
 
-void move(float voltage) {
-	driveLeftBack.move(voltage);
-	driveLeftFront.move(voltage);
-	driveRightBack.move(voltage);
-	driveRightFront.move(voltage);
+void move(float voltage, float angle) {
+	if((inertial_sensor.get_heading() > (angle + 2)) && (inertial_sensor.get_heading() < (angle + 10))) {
+		driveLeftBack.move(voltage - 20);
+		driveLeftFront.move(voltage - 20);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	} else if((inertial_sensor.get_heading() < (angle - 2)) && (inertial_sensor.get_heading() > (angle +10))) {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage - 20);
+		driveRightFront.move(voltage - 20);
+	} else {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	}
+	
 }
+
+
 
 void rotate(float angle) {
 	float positiveAngle;
@@ -283,7 +298,7 @@ void drive(float targetX, float targetY, float targetAngle, float currentX, floa
 			float motorSpeed = (travelDistance * kP) + (errorDifference * kD);
 
 			if(motorSpeed > 127) motorSpeed = 127;
-			move(motorSpeed);
+			move(motorSpeed, turnAngle);
 			lastTravelDistance = travelDistance;
 
 	
