@@ -29,6 +29,196 @@ pros::Imu inertial_sensor(8);
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
+class Roboto {
+public:
+  float currentX;
+  float currentY;
+  float pastFwd;
+  float pastLeftRight;
+
+  Roboto(float currentX = 0, float currentY = 0, float pastFwd = 0,
+         float pastLeftRight = 0) {
+    this->currentX = currentX;
+    this->currentY = currentY;
+    this->pastFwd = pastFwd;
+    this->pastLeftRight = pastLeftRight;
+  }
+
+  void driveStop() {
+    driveLeftBack.brake();
+    driveLeftFront.brake();
+    driveRightBack.brake();
+    driveRightFront.brake();
+  }
+  void move(float voltage) {
+    driveLeftBack.move(voltage);
+    driveLeftFront.move(voltage);
+    driveRightBack.move(voltage);
+    driveRightFront.move(voltage);
+  }
+  void rotate(float angle) {
+    inertial_sensor.tare();
+    float positiveAngle;
+    if (angle < 0) {
+      positiveAngle = angle + 360;
+    } else {
+      positiveAngle = angle;
+    }
+    float error = positiveAngle - inertial_sensor.get_heading();
+    float voltage;
+    while (std::abs(error) > 4) {
+      error = positiveAngle - inertial_sensor.get_heading();
+      voltage = error * 2;
+      voltage = std::abs(voltage);
+      if (voltage > 127)
+        voltage = 127;
+
+      if (angle < 0) {
+        driveLeftBack.move(-voltage);
+        driveLeftFront.move(-voltage);
+        driveRightBack.move(voltage);
+        driveRightFront.move(voltage);
+      } else if (angle > 0) {
+        driveLeftBack.move(voltage);
+        driveLeftFront.move(voltage);
+        driveRightBack.move(-voltage);
+        driveRightFront.move(-voltage);
+      }
+    }
+  }
+  void drive(float targetX, float targetY, float targetAngle) {
+    float angle = inertial_sensor.get_heading();
+    float posX = currentX;
+    float wheelRadius = 1.375;
+    float posY = currentY;
+    float posXinch = 0;
+    float posYinch = 0;
+    float averageFwd = 0;
+    float averageLeftRight = 0;
+    float lastAvgFwd = pastFwd;
+    float lastLeftRight = pastLeftRight;
+    float angleError = 0;
+    float turnSpeed = 0;
+    float travelX = targetX - (wheelRadius * (currentX * (PI / 180)));
+    float travelY = targetY - (wheelRadius * (currentY * (PI / 180)));
+    float driveVoltage = 0;
+
+    float kP = 4;
+    float kD = 4;
+    float lastTravelDistance = 0;
+
+    float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+
+    float turnAngle =
+        90 - (std::abs((asinf(travelY / travelDistance)) * (180 / PI)));
+    if (travelY < 0 && travelX > 0) {
+      turnAngle = turnAngle + 90;
+    } else if (travelY < 0 && travelX < 0) {
+      turnAngle = turnAngle + 180;
+    } else if (travelY > 0 && travelX < 0) {
+      turnAngle = turnAngle + 270;
+    }
+
+    rotate(turnAngle);
+
+    while (travelDistance > 5) {
+      // position tracking
+      averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
+                    rightTrackerWheel.get_position() / 100.000) /
+                   2.0000;
+      averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
+      angle = inertial_sensor.get_heading();
+      // // coordinate tracking
+      posX = posX -
+             (((averageFwd - lastAvgFwd) * -sin(angle * PI / 180)) +
+              (averageLeftRight - lastLeftRight) * -cos(angle * (PI / 180)));
+      posY =
+          posY + (((averageFwd - lastAvgFwd) * cos(angle * PI / 180)) -
+                  (averageLeftRight - lastLeftRight) * sin(angle * (PI / 180)));
+      lastAvgFwd = averageFwd;
+      lastLeftRight = averageLeftRight;
+
+      posXinch = (wheelRadius * (posX * (PI / 180)));
+      posYinch = (wheelRadius * (posY * (PI / 180)));
+
+      travelX = targetX - posXinch;
+      travelY = targetY - posYinch;
+      travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+
+      float errorDifference = travelDistance - lastTravelDistance;
+      float motorSpeed = (travelDistance * kP) + (errorDifference * kD);
+
+      if (motorSpeed > 127)
+        motorSpeed = 127;
+      move(motorSpeed);
+      lastTravelDistance = travelDistance;
+    }
+    driveStop();
+
+    rotate(targetAngle - inertial_sensor.get_heading());
+    driveStop();
+    currentX = posX;
+    currentY = posY;
+    pastFwd = lastAvgFwd;
+    pastLeftRight = lastLeftRight;
+  }
+  void rotateLeft(float targetAngle) {
+    float error = targetAngle - inertial_sensor.get_heading();
+    float voltage;
+    error = fmod(error, 360);
+    while (error > 2) {
+      error = targetAngle - inertial_sensor.get_heading();
+      error = fmod(error, 360);
+      voltage = error * 1.5;
+      if (voltage > 127)
+        voltage = 127;
+      driveLeftBack.move(-voltage);
+      driveLeftFront.move(-voltage);
+      driveRightBack.move(voltage);
+      driveRightFront.move(voltage);
+    }
+    driveStop();
+  }
+
+  void rotateRight(float targetAngle) {
+    float error = targetAngle - inertial_sensor.get_heading();
+    float voltage;
+    error = fmod(error, 360);
+    while (error > 2) {
+      error = targetAngle - inertial_sensor.get_heading();
+      error = fmod(error, 360);
+      voltage = error * 1.5;
+      if (voltage > 127)
+        voltage = 127;
+      driveLeftBack.move(voltage);
+      driveLeftFront.move(voltage);
+      driveRightBack.move(-voltage);
+      driveRightFront.move(-voltage);
+    }
+    driveStop();
+  }
+
+  void rotateLeftAbsolute(float turnAngle) {
+    float startingAngle = inertial_sensor.get_heading();
+    float endingAngle = startingAngle - turnAngle;
+    if (endingAngle > 360)
+      endingAngle = endingAngle - 360;
+    if (endingAngle < 0)
+      endingAngle = endingAngle + 360;
+    rotateLeft(endingAngle);
+  }
+
+  void rotateRightAbsolute(float turnAngle) {
+    float startingAngle = inertial_sensor.get_heading();
+    float endingAngle = startingAngle + turnAngle;
+    if (endingAngle > 360)
+      endingAngle = endingAngle - 360;
+    if (endingAngle < 0)
+      endingAngle = endingAngle + 360;
+    rotateRight(endingAngle);
+  }
+};
+Roboto robot;
 /**
  * A callback function for LLEMU's center button.
  *
@@ -69,112 +259,6 @@ void initialize() {
   pros::lcd::initialize();
 }
 
-float currentXPos = 0;
-float currentYPos = 0;
-float pastFwdDistance = 0;
-float pastLeftRightDistance = 0;
-
-void driveStop() {
-  driveLeftBack.brake();
-  driveLeftFront.brake();
-  driveRightBack.brake();
-  driveRightFront.brake();
-}
-
-void rotateLeft(float targetAngle) {
-  float error = targetAngle - inertial_sensor.get_heading();
-  float voltage;
-  error = fmod(error, 360);
-  while (error > 2) {
-    error = targetAngle - inertial_sensor.get_heading();
-    error = fmod(error, 360);
-    voltage = error * 1.5;
-    if (voltage > 127)
-      voltage = 127;
-    driveLeftBack.move(-voltage);
-    driveLeftFront.move(-voltage);
-    driveRightBack.move(voltage);
-    driveRightFront.move(voltage);
-  }
-  driveStop();
-}
-
-void rotateRight(float targetAngle) {
-  float error = targetAngle - inertial_sensor.get_heading();
-  float voltage;
-  error = fmod(error, 360);
-  while (error > 2) {
-    error = targetAngle - inertial_sensor.get_heading();
-    error = fmod(error, 360);
-    voltage = error * 1.5;
-    if (voltage > 127)
-      voltage = 127;
-    driveLeftBack.move(voltage);
-    driveLeftFront.move(voltage);
-    driveRightBack.move(-voltage);
-    driveRightFront.move(-voltage);
-  }
-  driveStop();
-}
-
-void rotateLeftAbsolute(float turnAngle) {
-  float startingAngle = inertial_sensor.get_heading();
-  float endingAngle = startingAngle - turnAngle;
-  if (endingAngle > 360)
-    endingAngle = endingAngle - 360;
-  if (endingAngle < 0)
-    endingAngle = endingAngle + 360;
-  rotateLeft(endingAngle);
-}
-
-void rotateRightAbsolute(float turnAngle) {
-  float startingAngle = inertial_sensor.get_heading();
-  float endingAngle = startingAngle + turnAngle;
-  if (endingAngle > 360)
-    endingAngle = endingAngle - 360;
-  if (endingAngle < 0)
-    endingAngle = endingAngle + 360;
-  rotateRight(endingAngle);
-}
-
-void move(float voltage) {
-  driveLeftBack.move(voltage);
-  driveLeftFront.move(voltage);
-  driveRightBack.move(voltage);
-  driveRightFront.move(voltage);
-}
-
-void rotate(float angle) {
-  inertial_sensor.tare();
-  float positiveAngle;
-  if (angle < 0) {
-    positiveAngle = angle + 360;
-  } else {
-    positiveAngle = angle;
-  }
-  float error = positiveAngle - inertial_sensor.get_heading();
-  float voltage;
-  while (std::abs(error) > 4) {
-    error = positiveAngle - inertial_sensor.get_heading();
-    voltage = error * 2;
-    voltage = std::abs(voltage);
-    if (voltage > 127)
-      voltage = 127;
-
-    if (angle < 0) {
-      driveLeftBack.move(-voltage);
-      driveLeftFront.move(-voltage);
-      driveRightBack.move(voltage);
-      driveRightFront.move(voltage);
-    } else if (angle > 0) {
-      driveLeftBack.move(voltage);
-      driveLeftFront.move(voltage);
-      driveRightBack.move(-voltage);
-      driveRightFront.move(-voltage);
-    }
-  }
-}
-
 void pid(double distance) {
   double error;
   double kP = 0.1;
@@ -196,85 +280,6 @@ void pid(double distance) {
 
     lastError = error;
   }
-}
-
-void drive(float targetX, float targetY, float targetAngle, float currentX,
-           float currentY, float pastFwd, float pastLeftRight) {
-  float angle = inertial_sensor.get_heading();
-
-  float posX = currentX;
-  float wheelRadius = 1.375;
-  float posY = currentY;
-  float posXinch = 0;
-  float posYinch = 0;
-  float averageFwd = 0;
-  float averageLeftRight = 0;
-  float lastAvgFwd = pastFwd;
-  float lastLeftRight = pastLeftRight;
-  float angleError = 0;
-  float turnSpeed = 0;
-  float travelX = targetX - (wheelRadius * (currentX * (PI / 180)));
-  float travelY = targetY - (wheelRadius * (currentY * (PI / 180)));
-  float driveVoltage = 0;
-
-  float kP = 4;
-  float kD = 4;
-  float lastTravelDistance = 0;
-
-  float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
-
-  float turnAngle =
-      90 - (std::abs((asinf(travelY / travelDistance)) * (180 / PI)));
-  if (travelY < 0 && travelX > 0) {
-    turnAngle = turnAngle + 90;
-  } else if (travelY < 0 && travelX < 0) {
-    turnAngle = turnAngle + 180;
-  } else if (travelY > 0 && travelX < 0) {
-    turnAngle = turnAngle + 270;
-  }
-
-  rotate(turnAngle);
-
-  while (travelDistance > 5) {
-    // position tracking
-    averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
-                  rightTrackerWheel.get_position() / 100.000) /
-                 2.0000;
-    averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
-    angle = inertial_sensor.get_heading();
-    // // coordinate tracking
-    posX =
-        posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI / 180)) +
-                (averageLeftRight - lastLeftRight) * -cos(angle * (PI / 180)));
-    posY =
-        posY + (((averageFwd - lastAvgFwd) * cos(angle * PI / 180)) -
-                (averageLeftRight - lastLeftRight) * sin(angle * (PI / 180)));
-    lastAvgFwd = averageFwd;
-    lastLeftRight = averageLeftRight;
-
-    posXinch = (wheelRadius * (posX * (PI / 180)));
-    posYinch = (wheelRadius * (posY * (PI / 180)));
-
-    travelX = targetX - posXinch;
-    travelY = targetY - posYinch;
-    travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
-
-    float errorDifference = travelDistance - lastTravelDistance;
-    float motorSpeed = (travelDistance * kP) + (errorDifference * kD);
-
-    if (motorSpeed > 127)
-      motorSpeed = 127;
-    move(motorSpeed);
-    lastTravelDistance = travelDistance;
-  }
-  driveStop();
-
-  rotate(targetAngle - inertial_sensor.get_heading());
-  driveStop();
-  currentXPos = posX;
-  currentYPos = posY;
-  pastFwdDistance = lastAvgFwd;
-  pastLeftRightDistance = lastLeftRight;
 }
 
 /**
@@ -308,23 +313,20 @@ void competition_initialize() {}
  */
 
 void auton1() {
-  drive(25, 25, -2.5, currentXPos, currentYPos, pastFwdDistance,
-        pastLeftRightDistance);
-  controller.print(1, 0, "currentxpos: %f", currentXPos);
+  robot.drive(25, 25, -2.5);
+  controller.print(1, 0, "currentxpos: %f", robot.currentX);
   pros::delay(5000);
-  drive(35, 35, -3.5, currentXPos, currentYPos, pastFwdDistance,
-        pastLeftRightDistance);
-  controller.print(1, 0, "currentxpos: %f", currentXPos);
-  controller.print(2, 0, "currentypos: %f", currentYPos);
+  robot.drive(35, 35, -3.5);
+  controller.print(1, 0, "currentxpos: %f", robot.currentX);
+  controller.print(2, 0, "currentypos: %f", robot.currentY);
   pros::delay(5000);
-  drive(0, 0, 0, currentXPos, currentYPos, pastFwdDistance,
-        pastLeftRightDistance);
+  robot.drive(0, 0, 0);
 }
 
 void auton2() {
-  rotate(90);
+  robot.rotate(90);
   pros::delay(1000);
-  rotate(-90);
+  robot.rotate(-90);
 }
 
 void autonomous() { auton1(); }
