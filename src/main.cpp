@@ -1,4 +1,5 @@
 #include "main.h"
+#include "pros/adi.hpp"
 #include "pros/imu.hpp"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
@@ -13,19 +14,22 @@
 
 #define PI 3.1415926
 
-pros::Motor driveLeftFront(9, pros::E_MOTOR_GEARSET_18, 0,
+pros::Motor driveLeftFront(19, pros::E_MOTOR_GEARSET_06, 1,
                            pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveLeftBack(21, pros::E_MOTOR_GEARSET_18, 0,
+pros::Motor driveLeftBack(20, pros::E_MOTOR_GEARSET_06, 1,
                           pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightFront(17, pros::E_MOTOR_GEARSET_18, 1,
+pros::Motor driveRightFront(17, pros::E_MOTOR_GEARSET_06, 0,
                             pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightBack(11, pros::E_MOTOR_GEARSET_18, 1,
+pros::Motor driveRightBack(18, pros::E_MOTOR_GEARSET_06, 0,
                            pros::E_MOTOR_ENCODER_COUNTS);
-// pros::IMU rotational_sensor(5);
-pros::Rotation leftTrackerWheel(10);
+pros::IMU rotational_sensor(5);
+pros::Rotation leftTrackerWheel(9);
 pros::Rotation rightTrackerWheel(14);
-pros::Rotation horizontalTrackerWheel(20);
-pros::Imu inertial_sensor(8);
+pros::Rotation horizontalTrackerWheel(6);
+pros::Imu inertial_sensor(6);
+pros::Motor flywheel (10, pros::E_MOTOR_GEARSET_06, 0, pros::E_MOTOR_ENCODER_COUNTS);
+pros::ADIDigitalOut indexer ('A', true);
+pros::Motor intake(12, pros::E_MOTOR_GEARSET_06, 0, pros::E_MOTOR_ENCODER_COUNTS);
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -50,11 +54,27 @@ public:
     driveRightBack.brake();
     driveRightFront.brake();
   }
-  void move(float voltage) {
-    driveLeftBack.move(voltage);
-    driveLeftFront.move(voltage);
-    driveRightBack.move(voltage);
-    driveRightFront.move(voltage);
+  void move(float voltage, float angle) {
+   if((inertial_sensor.get_heading() > (angle + 2)) && (inertial_sensor.get_heading() < (angle + 10))) {
+		driveLeftBack.move(voltage - 20);
+		driveLeftFront.move(voltage - 20);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	} else if((inertial_sensor.get_heading() < (angle - 2)) && (inertial_sensor.get_heading() > (angle - 10))) {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage - 20);
+		driveRightFront.move(voltage - 20);
+	} else if((inertial_sensor.get_heading() > (angle + 11))) {
+		rotate(-angle);
+	} else if((inertial_sensor.get_heading() < (angle - 11))) {
+		rotate(angle);
+	} else {
+		driveLeftBack.move(voltage);
+		driveLeftFront.move(voltage);
+		driveRightBack.move(voltage);
+		driveRightFront.move(voltage);
+	}
   }
   void rotate(float angle) {
     inertial_sensor.tare();
@@ -119,14 +139,14 @@ public:
       turnAngle = turnAngle + 270;
     }
 
+	float variable = 2;
+
     rotate(turnAngle);
 
-    while (travelDistance > 5) {
+    while (travelDistance > variable) {
       // position tracking
-      averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
-                    rightTrackerWheel.get_position() / 100.000) /
-                   2.0000;
-      averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
+      averageFwd = (rightTrackerWheel.get_position() / 100.0000 + leftTrackerWheel.get_position() / 100.0000) / 4;
+      averageLeftRight = horizontalTrackerWheel.get_position() / 100.0000;
       angle = inertial_sensor.get_heading();
       // // coordinate tracking
       posX = posX -
@@ -141,16 +161,32 @@ public:
       posXinch = (wheelRadius * (posX * (PI / 180)));
       posYinch = (wheelRadius * (posY * (PI / 180)));
 
+	  if(travelX < -1) {
+				variable = 11;
+			}
+
       travelX = targetX - posXinch;
       travelY = targetY - posYinch;
       travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
+	  turnAngle =
+        90 - (std::abs((asinf(travelY / travelDistance)) * (180 / PI)));
+    	if (travelY < 0 && travelX > 0) {
+      	turnAngle = turnAngle + 90;
+    	} else if (travelY < 0 && travelX < 0) {
+      turnAngle = turnAngle + 180;
+    	} else if (travelY > 0 && travelX < 0) {
+      turnAngle = turnAngle + 270;
+    	}
 
       float errorDifference = travelDistance - lastTravelDistance;
       float motorSpeed = (travelDistance * kP) + (errorDifference * kD);
 
+      
+
+
       if (motorSpeed > 127)
         motorSpeed = 127;
-      move(motorSpeed);
+      move(motorSpeed, turnAngle);
       lastTravelDistance = travelDistance;
     }
     driveStop();
@@ -251,36 +287,11 @@ void initialize() {
   driveLeftBack.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   inertial_sensor.reset();
-  leftTrackerWheel.reset();
-  rightTrackerWheel.reset();
-  leftTrackerWheel.reset_position();
-  rightTrackerWheel.reset_position();
-  horizontalTrackerWheel.reset();
+
   pros::lcd::initialize();
 }
 
-void pid(double distance) {
-  double error;
-  double kP = 0.1;
-  double kI = 0.001;
-  double kD = 0.01;
-  double totalError = 0;
-  double lastError = distance;
-  while (error > 0) {
-    double averageEncoderTicks =
-        (driveLeftBack.get_position() + driveLeftFront.get_position() +
-         driveRightBack.get_position() + driveRightFront.get_position()) /
-        4;
 
-    error = distance - averageEncoderTicks;
-    double errorDifference = lastError - error;
-    totalError += error;
-    double motorSpeed =
-        (error * kP) + (totalError * kI) + (errorDifference * kD);
-
-    lastError = error;
-  }
-}
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -313,20 +324,82 @@ void competition_initialize() {}
  */
 
 void auton1() {
-  robot.drive(25, 25, -2.5);
-  controller.print(1, 0, "currentxpos: %f", robot.currentX);
-  pros::delay(5000);
-  robot.drive(35, 35, -3.5);
-  controller.print(1, 0, "currentxpos: %f", robot.currentX);
-  controller.print(2, 0, "currentypos: %f", robot.currentY);
-  pros::delay(5000);
-  robot.drive(0, 0, 0);
+  intake.move(127);
+  flywheel.move(127);
+  robot.drive(-30, 30, -315);
+  pros::delay(100);
+  robot.drive(-45, 45, 35);
+  pros::delay(500);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  robot.drive(-60, 60, 45);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  robot.drive(-75, 75, 55);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  
+
 }
 
 void auton2() {
-  robot.rotate(90);
-  pros::delay(1000);
-  robot.rotate(-90);
+  intake.move(127);
+  flywheel.move(127);
+  robot.drive(90, 1, 0);
+  pros::delay(300);
+  robot.drive(1, 10, -330);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  robot.drive(1, 20, -325);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  robot.drive(0, 20, -320);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  
+
+
+}
+
+void auton3() {
+  flywheel.move(127);
+  robot.rotate(-10);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
 }
 
 void autonomous() { auton1(); }
@@ -350,26 +423,15 @@ void opcontrol() {
   float rightJoystick;
   bool buttonA;
   bool buttonB;
+  bool r1;
+  int toggleFly = 0;
+  bool l1;
+  int toggleIntake = 0;
+  bool l2;
+  int reverseToggleIntake = 0;
+  bool r2;
 
-  // odom declarations
-  float leftInches;
-  float rightInches;
-  float averageInches;
-  float wheelRadius = 1.375;
-  float sL = 2;
-  float sR = 2;
-  float sS = 3.00000;
-  float tR = 0;
-  float tL = 0;
-  float posX = 0;
-  float posY = 0;
-  float angle;
-  float pastAngle = 0;
-  float lastLeftTracker;
-  float lastRightTracker;
-  float lastBackTracker;
-  float lastAvgFwd = 0;
-  float lastLeftRight = 0;
+
 
   while (true) {
     // driver control
@@ -377,44 +439,45 @@ void opcontrol() {
     rightJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
     buttonA = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
     buttonB = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+    r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
+    l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+    l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+    r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
 
     driveRightBack.move(rightJoystick);
     driveRightFront.move(rightJoystick);
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    // position tracking
-    angle = inertial_sensor.get_heading();
-    // if(angle > 360) angle = angle - 360;
-    // if(angle < 0) {
-    // 	angle = angle + 360;
-    // }
-    float averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
-                        rightTrackerWheel.get_position() / 100.000) /
-                       2.0000;
-    float averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
-
-    // coordinate tracking
-    posX =
-        posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI / 180)) +
-                (averageLeftRight - lastLeftRight) * -cos(angle * (PI / 180)));
-    posY =
-        posY + (((averageFwd - lastAvgFwd) * cos(angle * PI / 180)) -
-                (averageLeftRight - lastLeftRight) * sin(angle * (PI / 180)));
-
-    // controller.print(1, 0, "Position X: %f", (wheelRadius * (posX *
-    // (PI/180)))); controller.print(2, 0, "Position Y: %f", (wheelRadius *
-    // (posY * (PI/180))));
-
-    controller.print(1, 0, "angle: %f", (angle));
-
-    lastAvgFwd = averageFwd;
-    lastLeftRight = averageLeftRight;
-
-    lastLeftTracker = leftTrackerWheel.get_position() / 100.000;
-    lastRightTracker = rightTrackerWheel.get_position() / 100.000;
-    lastBackTracker = horizontalTrackerWheel.get_position() / 100.000;
-
-    pros::delay(1);
+    if (r1){
+      toggleFly = 1;
+    }
+    if (toggleFly == 1){
+      flywheel = 127;
+    }
+    if (r2){
+      toggleFly = 0;
+    }
+    if (toggleFly == 0){
+      flywheel = 0;
+    }
+    if (l1){
+      toggleIntake = 1;
+    }
+    if (toggleIntake == 1){
+      intake = 127;
+    }
+    if (l2){
+      intake = -127;
+    }
+  
+    if (buttonA){
+      indexer.set_value(false);
+      pros::delay(100);
+      indexer.set_value(true);
+    }
+    pros::delay(5);
   }
 }
+
+
