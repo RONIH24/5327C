@@ -173,6 +173,7 @@ void opcontrol() {
   bool l2;
   int reverseToggleIntake = 0;
   bool r2;
+  bool r1;
 
   while (true) {
     // driver control
@@ -193,7 +194,7 @@ void opcontrol() {
 
     if (flyspeed = 0){
       flywheel = -127;
-      flywheel2= = 127;
+      flywheel2 = 127;
     }
     if (l1) {
       toggleIntake = 1;
