@@ -5,7 +5,9 @@
 #include <string>
 
 const float PI = 3.1415926;
-int flyspeed = 0;
+int flySpeed = 0;
+bool goingdown = false;
+bool r1Engaged = false;
 
 /**
  * A callback function for LLEMU's center button.
@@ -72,6 +74,30 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+void toggleFlySpeed(){
+	if(flySpeed == 0){
+		flySpeed = 1;
+		flywheel = 90;
+    flywheel2 = -90;
+	}
+	else if(flySpeed == 1 && goingDown == false){
+		flySpeed = 2;
+		flywheel = 50;
+    flywheel2 = -50;
+	}
+	else if(flySpeed == 2){
+		flySpeed = 1;
+		goingDown = true;
+		flywheel = 90;
+    flywheel2 = -90;
+	}
+	else if(flySpeed == 1 && goingDown == true){
+		flySpeed = 0;
+		goingDown = false;
+		flywheel = 127;
+    flywheel2 = -127;
+	}
+}
 
 void auton1() {
   intake.move(127);
@@ -174,6 +200,8 @@ void opcontrol() {
   int reverseToggleIntake = 0;
   bool r2;
   bool r1;
+  flyspeed = 127;
+  bool upArrow;
 
   while (true) {
     // driver control
@@ -181,10 +209,12 @@ void opcontrol() {
     rightJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
     buttonA = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
     buttonB = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
-    r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
     l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
     l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
     r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+    upArrow = controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
+    downArrow = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
+    
 
     driveRightBack.move(rightJoystick);
     driveRightFront.move(rightJoystick);
@@ -192,10 +222,6 @@ void opcontrol() {
     driveLeftFront.move(leftJoystick);
 
 
-    if (flyspeed = 0){
-      flywheel = -127;
-      flywheel2 = 127;
-    }
     if (l1) {
       toggleIntake = 1;
     }
@@ -205,20 +231,15 @@ void opcontrol() {
     if (l2) {
       intake = -127;
     }
-    if(r2) {
-      flyspeed += 1;
-    }
-    if(r1){
-      flyspeed -= 1;
-    }
-    if (flyspeed = 1){
-      flywheel = -90;
-      flywheel = 90;
-    }
-    if (flyspeed = 2){
-      flywheel = -50;
-      flywheel = 50;
-    }
+
+    if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && r1Engaged == false){
+			toggleFlySpeed();
+			r1Engaged = true;
+		}
+		else if(!master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+			r1Engaged = false;
+		}
+
 
 
     if (buttonA) {
