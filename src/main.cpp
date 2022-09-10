@@ -5,6 +5,7 @@
 #include <string>
 
 const float PI = 3.1415926;
+int flyspeed = 0;
 
 /**
  * A callback function for LLEMU's center button.
@@ -189,9 +190,11 @@ void opcontrol() {
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    flywheel = -127;
-    flywheel2 = 127;
 
+    if (flyspeed = 0){
+      flywheel = -127;
+      flywheel2= = 127;
+    }
     if (l1) {
       toggleIntake = 1;
     }
@@ -201,6 +204,21 @@ void opcontrol() {
     if (l2) {
       intake = -127;
     }
+    if(r1) {
+      flyspeed += 1;
+    }
+    if(r2){
+      flyspeed -= 1;
+    }
+    if (flyspeed = 1){
+      flywheel = -90;
+      flywheel = 90;
+    }
+    if (flyspeed = 2){
+      flywheel = -50;
+      flywheel = 50;
+    }
+
 
     if (buttonA) {
       indexer.set_value(false);
