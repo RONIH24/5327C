@@ -15,7 +15,7 @@ pros::Motor driveRightBack(18, pros::E_MOTOR_GEARSET_06, 0,
                            pros::E_MOTOR_ENCODER_COUNTS);
 pros::IMU rotational_sensor(5);
 pros::Rotation leftTrackerWheel(9);
-pros::Rotation rightTrackerWheel(14);
+pros::Rotation rightTrackerWheel(16);
 pros::Rotation horizontalTrackerWheel(6);
 pros::Imu inertial_sensor(6);
 pros::Motor flywheel(10, pros::E_MOTOR_GEARSET_06, 0,

@@ -6,8 +6,12 @@
 
 const float PI = 3.1415926;
 int flySpeed = 0;
-bool goingdown = false;
+int inSpeed = 0;
+bool goingDown = false;
 bool r1Engaged = false;
+bool r2Engaged = false;
+bool l1Engaged = false;
+bool l2Engaged = false;
 
 /**
  * A callback function for LLEMU's center button.
@@ -74,28 +78,48 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void toggleFlySpeed(){
+void toggleFlySpeed() {
 	if(flySpeed == 0){
 		flySpeed = 1;
-		flywheel = 90;
-    flywheel2 = -90;
+		flywheel = 127;
+    flywheel2 = -127;
 	}
 	else if(flySpeed == 1 && goingDown == false){
 		flySpeed = 2;
-		flywheel = 50;
-    flywheel2 = -50;
+		flywheel = 95;
+    flywheel2 = -95;
 	}
 	else if(flySpeed == 2){
 		flySpeed = 1;
 		goingDown = true;
-		flywheel = 90;
-    flywheel2 = -90;
+		flywheel = 74;
+    flywheel2 = -74;
 	}
 	else if(flySpeed == 1 && goingDown == true){
 		flySpeed = 0;
 		goingDown = false;
 		flywheel = 127;
     flywheel2 = -127;
+	}
+}
+void toggleIntake() {
+	if(inSpeed == 0){
+		inSpeed = 1;
+		intake = 127;
+	}
+	else if(inSpeed == 1 && goingDown == false){
+		inSpeed = 2;
+		intake = 0;
+	}
+	else if(inSpeed == 2){
+		inSpeed = 1;
+		goingDown = true;
+		intake = -127;
+	}
+	else if(inSpeed == 1 && goingDown == true){
+		inSpeed = 0;
+		goingDown = false;
+		intake = 0;
 	}
 }
 
@@ -194,14 +218,7 @@ void opcontrol() {
   float rightJoystick;
   bool buttonA;
   bool buttonB;
-  bool l1;
-  int toggleIntake = 0;
   bool l2;
-  int reverseToggleIntake = 0;
-  bool r2;
-  bool r1;
-  flyspeed = 127;
-  bool upArrow;
 
   while (true) {
     // driver control
@@ -209,11 +226,7 @@ void opcontrol() {
     rightJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
     buttonA = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
     buttonB = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
-    l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
     l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-    r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-    upArrow = controller.get_digital(pros::E_CONTROLLER_DIGITAL_UP);
-    downArrow = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
     
 
     driveRightBack.move(rightJoystick);
@@ -221,25 +234,20 @@ void opcontrol() {
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    flywheel = 127;
-    flywheel2 = -127;
-
-    if (l1) {
-      toggleIntake = 1;
-    }
-    if (toggleIntake == 1) {
-      intake = 127;
-    }
-    if (l2) {
-      intake = -127;
-    }
-
-    if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && r1Engaged == false){
+    if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && r1Engaged == false){
 			toggleFlySpeed();
 			r1Engaged = true;
 		}
-		else if(!master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+		else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
 			r1Engaged = false;
+		}
+
+    if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1) && l1Engaged == false){
+			toggleIntake();
+			l1Engaged = true;
+		}
+		else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
+			l1Engaged = false;
 		}
 
 
