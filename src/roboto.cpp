@@ -20,6 +20,8 @@ pros::Rotation horizontalTrackerWheel(6);
 pros::Imu inertial_sensor(6);
 pros::Motor flywheel(10, pros::E_MOTOR_GEARSET_06, 0,
                      pros::E_MOTOR_ENCODER_COUNTS);
+pros::Motor flywheel2(11, pros::E_MOTOR_GEARSET_06, 0,
+                     pros::E_MOTOR_ENCODER_COUNTS);
 pros::ADIDigitalOut indexer('A', true);
 pros::Motor intake(12, pros::E_MOTOR_GEARSET_06, 0,
                    pros::E_MOTOR_ENCODER_COUNTS);
