@@ -167,8 +167,6 @@ void opcontrol() {
   float rightJoystick;
   bool buttonA;
   bool buttonB;
-  bool r1;
-  int toggleFly = 0;
   bool l1;
   int toggleIntake = 0;
   bool l2;
@@ -191,18 +189,9 @@ void opcontrol() {
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    if (r1) {
-      toggleFly = 1;
-    }
-    if (toggleFly == 1) {
-      flywheel = 127;
-    }
-    if (r2) {
-      toggleFly = 0;
-    }
-    if (toggleFly == 0) {
-      flywheel = 0;
-    }
+    flywheel = -127;
+    flywheel2 = 127;
+
     if (l1) {
       toggleIntake = 1;
     }
