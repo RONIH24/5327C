@@ -253,9 +253,9 @@ void opcontrol() {
 
 
     if (buttonA) {
-      indexer.set_value(false);
-      pros::delay(100);
       indexer.set_value(true);
+      pros::delay(100);
+      indexer.set_value(false);
     }
     pros::delay(5);
   }
