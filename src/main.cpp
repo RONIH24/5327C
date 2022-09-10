@@ -221,6 +221,7 @@ void opcontrol() {
   bool l2;
 
   while (true) {
+    controller.print(1, 0, "flywheel Velocity: %d", flywheel.get_voltage());
     // driver control
     leftJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
     rightJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
@@ -249,6 +250,10 @@ void opcontrol() {
 		else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
 			l1Engaged = false;
 		}
+
+    if(l2){
+      intake = -35;
+    }
 
 
 
