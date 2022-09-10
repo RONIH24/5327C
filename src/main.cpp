@@ -1,39 +1,16 @@
 #include "main.h"
-#include "pros/imu.hpp"
-#include "pros/llemu.hpp"
-#include "pros/misc.h"
-#include "pros/misc.hpp"
-#include "pros/motors.h"
-#include "pros/motors.hpp"
-#include "pros/rtos.hpp"
-#include "pros/screen.h"
+#include "roboto/roboto.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <string>
 
-#define PI 3.1415926
-
-pros::Motor driveLeftFront(9, pros::E_MOTOR_GEARSET_18, 0,
-                           pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveLeftBack(21, pros::E_MOTOR_GEARSET_18, 0,
-                          pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightFront(17, pros::E_MOTOR_GEARSET_18, 1,
-                            pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightBack(11, pros::E_MOTOR_GEARSET_18, 1,
-                           pros::E_MOTOR_ENCODER_COUNTS);
-// pros::IMU rotational_sensor(5);
-pros::Rotation leftTrackerWheel(10);
-pros::Rotation rightTrackerWheel(14);
-pros::Rotation horizontalTrackerWheel(20);
-pros::Imu inertial_sensor(8);
-
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
+const float PI = 3.1415926;
 
 /**
  * A callback function for LLEMU's center button.
  *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
+ * When this callback is fired, it will toggle line 2 of the LCD text
+ * between "I was pressed!" and nothing.
  */
 void on_center_button() {
   static bool pressed = false;
@@ -61,198 +38,8 @@ void initialize() {
   driveLeftBack.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   inertial_sensor.reset();
-  leftTrackerWheel.reset();
-  rightTrackerWheel.reset();
-  leftTrackerWheel.reset_position();
-  rightTrackerWheel.reset_position();
-  horizontalTrackerWheel.reset();
+
   pros::lcd::initialize();
-}
-
-float currentXPos = 0;
-float currentYPos = 0;
-float pastFwdDistance = 0;
-float pastLeftRightDistance = 0;
-
-void driveStop() {
-  driveLeftBack.brake();
-  driveLeftFront.brake();
-  driveRightBack.brake();
-  driveRightFront.brake();
-}
-
-void rotate(float angle) {
-  float positiveAngle;
-  if (angle < 0) {
-    positiveAngle = angle + 360;
-  } else {
-    positiveAngle = angle;
-  }
-  float error = positiveAngle - inertial_sensor.get_heading();
-  float voltage;
-  while (std::abs(error) > 5) {
-    error = positiveAngle - inertial_sensor.get_heading();
-    voltage = error * 2;
-    voltage = std::abs(voltage);
-    if (voltage > 127)
-      voltage = 127;
-
-    if (angle < 0) {
-      driveLeftBack.move(-voltage);
-      driveLeftFront.move(-voltage);
-      driveRightBack.move(voltage);
-      driveRightFront.move(voltage);
-    } else if (angle > 0) {
-      driveLeftBack.move(voltage);
-      driveLeftFront.move(voltage);
-      driveRightBack.move(-voltage);
-      driveRightFront.move(-voltage);
-    }
-  }
-}
-
-void move(float voltage, float angle) {
-  if ((inertial_sensor.get_heading() > (angle + 2)) &&
-      (inertial_sensor.get_heading() < (angle + 10))) {
-    driveLeftBack.move(voltage - 20);
-    driveLeftFront.move(voltage - 20);
-    driveRightBack.move(voltage);
-    driveRightFront.move(voltage);
-  } else if ((inertial_sensor.get_heading() < (angle - 2)) &&
-             (inertial_sensor.get_heading() > (angle - 10))) {
-    driveLeftBack.move(voltage);
-    driveLeftFront.move(voltage);
-    driveRightBack.move(voltage - 20);
-    driveRightFront.move(voltage - 20);
-  } else if ((inertial_sensor.get_heading() > (angle + 11))) {
-    rotate(-angle);
-  } else if ((inertial_sensor.get_heading() < (angle - 11))) {
-    rotate(angle);
-  } else {
-    driveLeftBack.move(voltage);
-    driveLeftFront.move(voltage);
-    driveRightBack.move(voltage);
-    driveRightFront.move(voltage);
-  }
-}
-
-void pid(double distance) {
-  double error;
-  double kP = 0.1;
-  double kI = 0.001;
-  double kD = 0.01;
-  double totalError = 0;
-  double lastError = distance;
-  while (error > 0) {
-    double averageEncoderTicks =
-        (driveLeftBack.get_position() + driveLeftFront.get_position() +
-         driveRightBack.get_position() + driveRightFront.get_position()) /
-        4;
-
-    error = distance - averageEncoderTicks;
-    double errorDifference = lastError - error;
-    totalError += error;
-    double motorSpeed =
-        (error * kP) + (totalError * kI) + (errorDifference * kD);
-
-    lastError = error;
-  }
-}
-
-void drive(float targetX, float targetY, float targetAngle, float currentX,
-           float currentY, float pastFwd, float pastLeftRight) {
-  float angle = inertial_sensor.get_heading();
-
-  float posX = currentX;
-  float wheelRadius = 1.375;
-  float posY = currentY;
-  float posXinch = 0;
-  float posYinch = 0;
-  float averageFwd = 0;
-  float averageLeftRight = 0;
-  float lastAvgFwd = pastFwd;
-  float lastLeftRight = pastLeftRight;
-  float angleError = 0;
-  float turnSpeed = 0;
-  float travelX = targetX - (wheelRadius * (currentX * (PI / 180)));
-  float travelY = targetY - (wheelRadius * (currentY * (PI / 180)));
-  float driveVoltage = 0;
-
-  float kP = 4;
-  float kD = 4;
-  float lastTravelDistance = 0;
-
-  float travelDistance = sqrtf((travelX * travelX) + (travelY * travelY));
-
-  float turnAngle =
-      90 - (std::abs((asinf(travelY / travelDistance)) * (180 / PI)));
-  if (travelY < 0 && travelX > 0) {
-    turnAngle = turnAngle + 90;
-  } else if (travelY < 0 && travelX < 0) {
-    turnAngle = turnAngle + 180;
-  } else if (travelY > 0 && travelX < 0) {
-    turnAngle = turnAngle + 270;
-  }
-
-  float variable = 2;
-
-  rotate(turnAngle);
-
-  while (travelDistance > variable) {
-    // position tracking
-    averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
-                  rightTrackerWheel.get_position() / 100.000) /
-                 2.0000;
-    averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
-    angle = inertial_sensor.get_heading();
-    // // coordinate tracking
-    posX =
-        posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI / 180)) +
-                (averageLeftRight - lastLeftRight) * -cos(angle * (PI / 180)));
-    posY =
-        posY + (((averageFwd - lastAvgFwd) * cos(angle * PI / 180)) -
-                (averageLeftRight - lastLeftRight) * sin(angle * (PI / 180)));
-    lastAvgFwd = averageFwd;
-    lastLeftRight = averageLeftRight;
-
-    posXinch = (wheelRadius * (posX * (PI / 180)));
-    posYinch = (wheelRadius * (posY * (PI / 180)));
-
-    travelX = targetX - posXinch;
-    travelY = targetY - posYinch;
-    travelDistance =
-        sqrtf(std::abs((travelX * travelX)) + std::abs((travelY * travelY)));
-
-    if (travelX < -1) {
-      variable = 11;
-    }
-
-    if (std::abs((turnAngle - inertial_sensor.get_heading())) >= 5) {
-      rotate(turnAngle);
-    }
-
-    float errorDifference = travelDistance - lastTravelDistance;
-    float motorSpeed = (travelDistance * kP) + (errorDifference * kD);
-
-    if (motorSpeed > 127)
-      motorSpeed = 127;
-    move(motorSpeed, turnAngle);
-    lastTravelDistance = travelDistance;
-
-    controller.print(1, 0, "travel distance: %f", travelDistance);
-
-    if (travelDistance < 6) {
-      travelDistance = 0;
-    }
-  }
-  driveStop();
-
-  rotate(targetAngle);
-  driveStop();
-  currentXPos = posX;
-  currentYPos = posY;
-  pastFwdDistance = lastAvgFwd;
-  pastLeftRightDistance = lastLeftRight;
 }
 
 /**
@@ -286,17 +73,77 @@ void competition_initialize() {}
  */
 
 void auton1() {
-  drive(50, 50, -360, currentXPos, currentYPos, pastFwdDistance,
-        pastLeftRightDistance);
-  pros::delay(1000);
-  drive(1, 1, 2, currentXPos, currentYPos, pastFwdDistance,
-        pastLeftRightDistance);
+  intake.move(127);
+  flywheel.move(127);
+  drive(-30, 30, -315);
+  pros::delay(100);
+  drive(-45, 45, 35);
+  pros::delay(500);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  drive(-60, 60, 45);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  drive(-75, 75, 55);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
 }
 
 void auton2() {
-  rotate(90);
-  pros::delay(1000);
-  rotate(180);
+  intake.move(127);
+  flywheel.move(127);
+  drive(90, 1, 0);
+  pros::delay(300);
+  drive(1, 10, -330);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  drive(1, 20, -325);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  drive(0, 20, -320);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  pros::delay(300);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+}
+
+void auton3() {
+  flywheel.move(127);
+  rotate(-10);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
 }
 
 void autonomous() { auton1(); }
@@ -320,26 +167,13 @@ void opcontrol() {
   float rightJoystick;
   bool buttonA;
   bool buttonB;
-
-  // odom declarations
-  float leftInches;
-  float rightInches;
-  float averageInches;
-  float wheelRadius = 1.375;
-  float sL = 2;
-  float sR = 2;
-  float sS = 3.00000;
-  float tR = 0;
-  float tL = 0;
-  float posX = 0;
-  float posY = 0;
-  float angle;
-  float pastAngle = 0;
-  float lastLeftTracker;
-  float lastRightTracker;
-  float lastBackTracker;
-  float lastAvgFwd = 0;
-  float lastLeftRight = 0;
+  bool r1;
+  int toggleFly = 0;
+  bool l1;
+  int toggleIntake = 0;
+  bool l2;
+  int reverseToggleIntake = 0;
+  bool r2;
 
   while (true) {
     // driver control
@@ -347,44 +181,43 @@ void opcontrol() {
     rightJoystick = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
     buttonA = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
     buttonB = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+    r1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
+    l1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+    l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+    r2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
 
     driveRightBack.move(rightJoystick);
     driveRightFront.move(rightJoystick);
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    // position tracking
-    angle = inertial_sensor.get_heading();
-    // if(angle > 360) angle = angle - 360;
-    // if(angle < 0) {
-    // 	angle = angle + 360;
-    // }
-    float averageFwd = ((leftTrackerWheel.get_position() / 100.000) +
-                        rightTrackerWheel.get_position() / 100.000) /
-                       2.0000;
-    float averageLeftRight = (horizontalTrackerWheel.get_position() / 100.000);
+    if (r1) {
+      toggleFly = 1;
+    }
+    if (toggleFly == 1) {
+      flywheel = 127;
+    }
+    if (r2) {
+      toggleFly = 0;
+    }
+    if (toggleFly == 0) {
+      flywheel = 0;
+    }
+    if (l1) {
+      toggleIntake = 1;
+    }
+    if (toggleIntake == 1) {
+      intake = 127;
+    }
+    if (l2) {
+      intake = -127;
+    }
 
-    // coordinate tracking
-    posX =
-        posX - (((averageFwd - lastAvgFwd) * -sin(angle * PI / 180)) +
-                (averageLeftRight - lastLeftRight) * -cos(angle * (PI / 180)));
-    posY =
-        posY + (((averageFwd - lastAvgFwd) * cos(angle * PI / 180)) -
-                (averageLeftRight - lastLeftRight) * sin(angle * (PI / 180)));
-
-    // controller.print(1, 0, "Position X: %f", (wheelRadius * (posX *
-    // (PI/180)))); controller.print(2, 0, "Position Y: %f", (wheelRadius *
-    // (posY * (PI/180))));
-
-    controller.print(1, 0, "angle: %f", (angle));
-
-    lastAvgFwd = averageFwd;
-    lastLeftRight = averageLeftRight;
-
-    lastLeftTracker = leftTrackerWheel.get_position() / 100.000;
-    lastRightTracker = rightTrackerWheel.get_position() / 100.000;
-    lastBackTracker = horizontalTrackerWheel.get_position() / 100.000;
-
-    pros::delay(1);
+    if (buttonA) {
+      indexer.set_value(false);
+      pros::delay(100);
+      indexer.set_value(true);
+    }
+    pros::delay(5);
   }
 }
