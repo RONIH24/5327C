@@ -204,10 +204,10 @@ void opcontrol() {
     if (l2) {
       intake = -127;
     }
-    if(r1) {
+    if(r2) {
       flyspeed += 1;
     }
-    if(r2){
+    if(r1){
       flyspeed -= 1;
     }
     if (flyspeed = 1){
