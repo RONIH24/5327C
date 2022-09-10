@@ -221,6 +221,8 @@ void opcontrol() {
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
+    flywheel = 127;
+    flywheel2 = -127;
 
     if (l1) {
       toggleIntake = 1;
