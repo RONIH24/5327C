@@ -15,6 +15,7 @@ extern pros::Rotation horizontalTrackerWheel;
 extern pros::Imu inertial_sensor;
 extern pros::Controller controller;
 extern pros::Motor flywheel;
+extern pros::Motor flywheel2;
 extern pros::ADIDigitalOut indexer;
 extern pros::Motor intake;
 extern float currentX;
