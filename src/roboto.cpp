@@ -5,25 +5,26 @@
 
 const float PI = 3.1415926;
 
-pros::Motor driveLeftFront(19, pros::E_MOTOR_GEARSET_06, 1,
+pros::Motor driveLeftFront(2, pros::E_MOTOR_GEARSET_06, 1,
                            pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveLeftBack(20, pros::E_MOTOR_GEARSET_06, 1,
+pros::Motor driveLeftBack(4, pros::E_MOTOR_GEARSET_06, 1,
                           pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightFront(17, pros::E_MOTOR_GEARSET_06, 0,
+pros::Motor driveRightFront(16, pros::E_MOTOR_GEARSET_06, 0,
                             pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor driveRightBack(18, pros::E_MOTOR_GEARSET_06, 0,
+pros::Motor driveRightBack(5, pros::E_MOTOR_GEARSET_06, 0,
                            pros::E_MOTOR_ENCODER_COUNTS);
-pros::IMU rotational_sensor(5);
-pros::Rotation leftTrackerWheel(9);
-pros::Rotation rightTrackerWheel(16);
-pros::Rotation horizontalTrackerWheel(6);
-pros::Imu inertial_sensor(6);
-pros::Motor flywheel(10, pros::E_MOTOR_GEARSET_06, 0,
+
+pros::Rotation leftTrackerWheel(19);
+pros::Rotation rightTrackerWheel(18);
+pros::Rotation horizontalTrackerWheel(17);
+pros::Imu inertial_sensor(10);
+pros::Motor flywheel(11, pros::E_MOTOR_GEARSET_06, 1,
                      pros::E_MOTOR_ENCODER_COUNTS);
-pros::Motor flywheel2(11, pros::E_MOTOR_GEARSET_06, 0,
+pros::Motor flywheel2(12, pros::E_MOTOR_GEARSET_06, 1,
                      pros::E_MOTOR_ENCODER_COUNTS);
 pros::ADIDigitalOut indexer('A', false);
-pros::Motor intake(12, pros::E_MOTOR_GEARSET_06, 0,
+
+pros::Motor intake(13, pros::E_MOTOR_GEARSET_06, 0,
                    pros::E_MOTOR_ENCODER_COUNTS);
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -69,61 +70,63 @@ void rotate(float angle) {
     }
   }
 }
-void rotateLeft(float targetAngle) {
-  float error = targetAngle - inertial_sensor.get_heading();
-  float voltage;
-  error = fmod(error, 360);
-  while (error > 2) {
-    error = targetAngle - inertial_sensor.get_heading();
-    error = fmod(error, 360);
-    voltage = error * 1.5;
-    if (voltage > 127)
-      voltage = 127;
-    driveLeftBack.move(-voltage);
-    driveLeftFront.move(-voltage);
-    driveRightBack.move(voltage);
-    driveRightFront.move(voltage);
-  }
-  driveStop();
-}
+// void rotateLeft(float targetAngle) {
+//   float error = targetAngle - inertial_sensor.get_heading();
+//   float voltage;
+//   error = (error, 360);
+//   while (error > 2) {
+//     error = targetAngle - inertial_sensor.get_heading();
+//     error = fmod(error, 360);
+//     voltage = error * 1.5;
+//     if (voltage > 127)
+//       voltage = 127;
+//     driveLeftBack.move(-voltage);
+//     driveLeftFront.move(-voltage);
+//     driveRightBack.move(voltage);
+//     driveRightFront.move(voltage);
+//   }
+//   driveStop();
+// }
 
-void rotateRight(float targetAngle) {
-  float error = targetAngle - inertial_sensor.get_heading();
-  float voltage;
-  error = fmod(error, 360);
-  while (error > 2) {
-    error = targetAngle - inertial_sensor.get_heading();
-    error = fmod(error, 360);
-    voltage = error * 1.5;
-    if (voltage > 127)
-      voltage = 127;
-    driveLeftBack.move(voltage);
-    driveLeftFront.move(voltage);
-    driveRightBack.move(-voltage);
-    driveRightFront.move(-voltage);
-  }
-  driveStop();
-}
+// void rotateRight(float targetAngle) {
+//   float error = targetAngle - inertial_sensor.get_heading();
+//   float voltage;
+//   error = fmod(error, 360);
+//   while (error > 2) {
+//     error = targetAngle - inertial_sensor.get_heading();
+//     error = fmod(error, 360);
+//     voltage = error * 1.5;
+//     if (voltage > 127)
+//       voltage = 127;
+//     driveLeftBack.move(voltage);
+//     driveLeftFront.move(voltage);
+//     driveRightBack.move(-voltage);
+//     driveRightFront.move(-voltage);
+//   }
+//   driveStop();
+// }
 
-void rotateLeftAbsolute(float turnAngle) {
-  float startingAngle = inertial_sensor.get_heading();
-  float endingAngle = startingAngle - turnAngle;
-  if (endingAngle > 360)
-    endingAngle = endingAngle - 360;
-  if (endingAngle < 0)
-    endingAngle = endingAngle + 360;
-  rotateLeft(endingAngle);
-}
+// void rotateLeftAbsolute(float turnAngle) {
+//   float startingAngle = inertial_sensor.get_heading();
+//   float endingAngle = startingAngle - turnAngle;
+//   if (endingAngle > 360)
+//     endingAngle = endingAngle - 360;
+//   if (endingAngle < 0)
+//     endingAngle = endingAngle + 360;
+//   rotateLeft(endingAngle);
+// }
 
-void rotateRightAbsolute(float turnAngle) {
-  float startingAngle = inertial_sensor.get_heading();
-  float endingAngle = startingAngle + turnAngle;
-  if (endingAngle > 360)
-    endingAngle = endingAngle - 360;
-  if (endingAngle < 0)
-    endingAngle = endingAngle + 360;
-  rotateRight(endingAngle);
-}
+// void rotateRightAbsolute(float turnAngle) {
+//   float startingAngle = inertial_sensor.get_heading();
+//   float endingAngle = startingAngle + turnAngle;
+//   if (endingAngle > 360)
+//     endingAngle = endingAngle - 360;
+//   if (endingAngle < 0)
+//     endingAngle = endingAngle + 360;
+//   rotateRight(endingAngle);
+// }
+
+
 void move(float voltage, float angle) {
   if ((inertial_sensor.get_heading() > (angle + 2)) &&
       (inertial_sensor.get_heading() < (angle + 10))) {

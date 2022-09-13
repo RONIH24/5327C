@@ -12,6 +12,8 @@ bool r1Engaged = false;
 bool r2Engaged = false;
 bool l1Engaged = false;
 bool l2Engaged = false;
+bool isRed = true;
+pros::ADIDigitalOut expansion('B', true);
 
 /**
  * A callback function for LLEMU's center button.
@@ -45,6 +47,7 @@ void initialize() {
   driveLeftBack.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   inertial_sensor.reset();
+  
 
   pros::lcd::initialize();
 }
@@ -67,17 +70,6 @@ void disabled() {}
  */
 void competition_initialize() {}
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
 void toggleFlySpeed() {
 	if(flySpeed == 0){
 		flySpeed = 1;
@@ -105,7 +97,7 @@ void toggleFlySpeed() {
 void toggleIntake() {
 	if(inSpeed == 0){
 		inSpeed = 1;
-		intake = 127;
+		intake = -127;
 	}
 	else if(inSpeed == 1 && goingDown == false){
 		inSpeed = 2;
@@ -114,7 +106,7 @@ void toggleIntake() {
 	else if(inSpeed == 2){
 		inSpeed = 1;
 		goingDown = true;
-		intake = -127;
+		intake = 127;
 	}
 	else if(inSpeed == 1 && goingDown == true){
 		inSpeed = 0;
@@ -197,7 +189,54 @@ void auton3() {
   indexer.set_value(false);
 }
 
-void autonomous() { auton1(); }
+void auton4() {
+  flywheel.move(127);
+  flywheel2.move(127);
+  pros::delay(5000);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  indexer.set_value(true);
+  pros::delay(300);
+  indexer.set_value(false);
+  
+  
+}
+
+void rightSideAuton() {
+  if(isRed) {
+    intake.move(-127);
+  } else {
+    intake.move(127);
+  }
+  drive(15, 0, 180);
+  driveLeftBack.move(127);
+  driveLeftFront.move(127);
+  driveRightBack.move(127);
+  driveRightFront.move(127);
+  pros::delay(500);
+  driveStop();
+  rotate(0);
+
+}
+
+void leftSideAuton() {
+  if(isRed) {
+    intake.move(-127);
+  } else {
+    intake.move(127);
+  }
+  move(127);
+  pros::delay(500);
+  driveStop();
+  rotate(0);
+  
+}
+
+void autonomous() {}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -219,6 +258,7 @@ void opcontrol() {
   bool buttonA;
   bool buttonB;
   bool l2;
+  bool x;
 
   while (true) {
     controller.print(1, 0, "flywheel Velocity: %d", flywheel.get_voltage());
@@ -228,7 +268,8 @@ void opcontrol() {
     buttonA = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
     buttonB = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
     l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-    
+    x = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
+
 
     driveRightBack.move(rightJoystick);
     driveRightFront.move(rightJoystick);
@@ -239,7 +280,7 @@ void opcontrol() {
 			toggleFlySpeed();
 			r1Engaged = true;
 		}
-		else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+	  else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
 			r1Engaged = false;
 		}
 
@@ -253,6 +294,10 @@ void opcontrol() {
 
     if(l2){
       intake = -35;
+    }
+    
+    if(x) {
+      expansion.set_value(false);
     }
 
 

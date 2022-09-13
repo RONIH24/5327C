@@ -309,9 +309,9 @@
     "upload_options": {
       "compress_bin": true,
       "description": "Created with PROS",
-      "remote_name": "test-base",
-      "slot": 2,
-      "icon": "ufo"
+      "remote_name": "AMRITH",
+      "slot": 1,
+      "icon": "pizza"
     }
   }
 }
