@@ -47,7 +47,6 @@ void initialize() {
   driveLeftBack.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   inertial_sensor.reset();
-  
 
   pros::lcd::initialize();
 }
@@ -71,48 +70,42 @@ void disabled() {}
 void competition_initialize() {}
 
 void toggleFlySpeed() {
-	if(flySpeed == 0){
-		flySpeed = 1;
-		flywheel = 127;
+  if (flySpeed == 0) {
+    flySpeed = 1;
+    flywheel = 127;
     flywheel2 = -127;
-	}
-	else if(flySpeed == 1 && goingDown == false){
-		flySpeed = 2;
-		flywheel = 95;
+  } else if (flySpeed == 1 && goingDown == false) {
+    flySpeed = 2;
+    flywheel = 95;
     flywheel2 = -95;
-	}
-	else if(flySpeed == 2){
-		flySpeed = 1;
-		goingDown = true;
-		flywheel = 74;
+  } else if (flySpeed == 2) {
+    flySpeed = 1;
+    goingDown = true;
+    flywheel = 74;
     flywheel2 = -74;
-	}
-	else if(flySpeed == 1 && goingDown == true){
-		flySpeed = 0;
-		goingDown = false;
-		flywheel = 127;
+  } else if (flySpeed == 1 && goingDown == true) {
+    flySpeed = 0;
+    goingDown = false;
+    flywheel = 127;
     flywheel2 = -127;
-	}
+  }
 }
 void toggleIntake() {
-	if(inSpeed == 0){
-		inSpeed = 1;
-		intake = -127;
-	}
-	else if(inSpeed == 1 && goingDown == false){
-		inSpeed = 2;
-		intake = 0;
-	}
-	else if(inSpeed == 2){
-		inSpeed = 1;
-		goingDown = true;
-		intake = 127;
-	}
-	else if(inSpeed == 1 && goingDown == true){
-		inSpeed = 0;
-		goingDown = false;
-		intake = 0;
-	}
+  if (inSpeed == 0) {
+    inSpeed = 1;
+    intake = -127;
+  } else if (inSpeed == 1 && goingDown == false) {
+    inSpeed = 2;
+    intake = 0;
+  } else if (inSpeed == 2) {
+    inSpeed = 1;
+    goingDown = true;
+    intake = 127;
+  } else if (inSpeed == 1 && goingDown == true) {
+    inSpeed = 0;
+    goingDown = false;
+    intake = 0;
+  }
 }
 
 void auton1() {
@@ -202,12 +195,10 @@ void auton4() {
   indexer.set_value(true);
   pros::delay(300);
   indexer.set_value(false);
-  
-  
 }
 
 void rightSideAuton() {
-  if(isRed) {
+  if (isRed) {
     intake.move(-127);
   } else {
     intake.move(127);
@@ -220,11 +211,10 @@ void rightSideAuton() {
   pros::delay(500);
   driveStop();
   rotate(0);
-
 }
 
 void leftSideAuton() {
-  if(isRed) {
+  if (isRed) {
     intake.move(-127);
   } else {
     intake.move(127);
@@ -233,7 +223,6 @@ void leftSideAuton() {
   pros::delay(500);
   driveStop();
   rotate(0);
-  
 }
 
 void autonomous() {}
@@ -270,37 +259,34 @@ void opcontrol() {
     l2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
     x = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
 
-
     driveRightBack.move(rightJoystick);
     driveRightFront.move(rightJoystick);
     driveLeftBack.move(leftJoystick);
     driveLeftFront.move(leftJoystick);
 
-    if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && r1Engaged == false){
-			toggleFlySpeed();
-			r1Engaged = true;
-		}
-	  else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-			r1Engaged = false;
-		}
+    if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1) &&
+        r1Engaged == false) {
+      toggleFlySpeed();
+      r1Engaged = true;
+    } else if (!controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+      r1Engaged = false;
+    }
 
-    if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1) && l1Engaged == false){
-			toggleIntake();
-			l1Engaged = true;
-		}
-		else if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
-			l1Engaged = false;
-		}
+    if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1) &&
+        l1Engaged == false) {
+      toggleIntake();
+      l1Engaged = true;
+    } else if (!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+      l1Engaged = false;
+    }
 
-    if(l2){
+    if (l2) {
       intake = -35;
     }
-    
-    if(x) {
+
+    if (x) {
       expansion.set_value(false);
     }
-
-
 
     if (buttonA) {
       indexer.set_value(true);
