@@ -1,4 +1,5 @@
 #include "main.h"
+#include "roboto/debug.hpp"
 #include "roboto/roboto.hpp"
 #include <cmath>
 #include <cstdlib>
@@ -14,22 +15,6 @@ bool l1Engaged = false;
 bool l2Engaged = false;
 bool isRed = true;
 pros::ADIDigitalOut expansion('B', true);
-
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text
- * between "I was pressed!" and nothing.
- */
-void on_center_button() {
-  static bool pressed = false;
-  pressed = !pressed;
-  if (pressed) {
-    pros::lcd::set_text(2, "I was pressed!");
-  } else {
-    pros::lcd::clear_line(2);
-  }
-}
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -48,7 +33,7 @@ void initialize() {
   driveLeftFront.set_brake_mode(pros::E_MOTOR_BRAKE_BRAKE);
   inertial_sensor.reset();
 
-  pros::lcd::initialize();
+  // pros::lcd::initialize();
 }
 
 /**
@@ -248,7 +233,7 @@ void opcontrol() {
   bool buttonB;
   bool l2;
   bool x;
-
+  setup_graph(flywheel, flywheel2);
   while (true) {
     controller.print(1, 0, "flywheel Velocity: %d", flywheel.get_voltage());
     // driver control
