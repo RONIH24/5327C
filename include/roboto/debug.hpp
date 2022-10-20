@@ -10,10 +10,6 @@ typedef struct {
   pros::Motor *motor2;
 } Quack;
 
-lv_obj_t *create_chart();
-
-lv_chart_series_t *create_series(lv_obj_t *chart);
-
 void update(void *pain);
 
-void setup_graph(pros::Motor motor1, pros::Motor motor2);
+Quack setup_graph(pros::Motor *motor1, pros::Motor *motor2);

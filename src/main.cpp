@@ -2,6 +2,7 @@
 #include "roboto/debug.hpp"
 #include "roboto/roboto.hpp"
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 
@@ -233,7 +234,10 @@ void opcontrol() {
   bool buttonB;
   bool l2;
   bool x;
-  setup_graph(flywheel, flywheel2);
+
+  Quack wheat = setup_graph(&flywheel, &flywheel2);
+  pros::Task update_graph(update, (void *)&wheat, "graph");
+
   while (true) {
     controller.print(1, 0, "flywheel Velocity: %d", flywheel.get_voltage());
     // driver control
